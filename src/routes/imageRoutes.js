@@ -1,12 +1,11 @@
-import express from 'express';
-import ImageController from '../controllers/imageController.js';
+import express from "express";
+import ImageController from "../controllers/imageController.js";
 
 const router = express.Router();
 const imageController = new ImageController();
 
-const setRoutes = (app) => {
-    router.post('/generate', imageController.createImage.bind(imageController));
-    app.use('/api/images', router);
-};
+// Definir las rutas directamente en el router
+router.post("/generate", imageController.createImage.bind(imageController));
 
-export default setRoutes;
+// Exportar el router directamente
+export default router;
