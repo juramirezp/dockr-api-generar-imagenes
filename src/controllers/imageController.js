@@ -1,6 +1,8 @@
+import GenerationService from "../services/generationService.js"; // Importar el servicio
+
 class ImageController {
-	constructor(generationService) {
-		this.generationService = generationService;
+	constructor() {
+		this.generationService = new GenerationService(); // Instanciar internamente
 	}
 
 	async createImage(req, res) {
