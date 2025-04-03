@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import fs from "fs";
 import path from "path";
 import mime from "mime-types";
@@ -11,15 +11,12 @@ class GenerationService {
 			throw new Error("Se requiere una API Key de Google para el servicio de generación");
 		}
 
-		this.genAI = new GoogleGenerativeAI(this.apiKey);
-		this.model = this.genAI.getGenerativeModel({
-			model: "gemini-2.0-flash", // Mantenemos el modelo original
-			// model: "gemini-2.0-flash-exp-image-generation", // Mantenemos el modelo original
-		});
+		// Usamos la nueva sintaxis de la biblioteca
+		this.ai = new GoogleGenAI({ apiKey: this.apiKey });
 	}
 
 	async generateImages(prompt) {
-		// Configuración ajustada para eliminar parámetros problemáticos
+		// Configuración ajustada
 		const generationConfig = {
 			temperature: 1,
 			topP: 0.95,
@@ -28,120 +25,68 @@ class GenerationService {
 		};
 
 		try {
-			// Intentamos usar directamente generateContent en lugar de startChat
-			const result = await this.model.generateContent({
-				contents: [{ role: "user", parts: [{ text: prompt }] }],
+			// Usamos la nueva sintaxis
+			const response = await this.ai.models.generateContent({
+				model: "gemini-2.0-flash",
+				contents: prompt,
 				generationConfig,
 			});
 
-			console.log("Respuesta de la API:", JSON.stringify(result, null, 2));
+			console.log("Respuesta de la API:", JSON.stringify(response, null, 2));
 
-			// Procesamos la respuesta para extraer las imágenes
-			return this.processImageResponse(result);
+			// Guardamos la respuesta como texto
+			return this.saveResponse(response, prompt);
 		} catch (error) {
 			console.error("Error completo:", error);
 			throw new Error("Error durante la generación de imágenes: " + error.message);
 		}
 	}
 
-	// Método para procesar la respuesta y extraer las imágenes
+	// Nuevo método para guardar respuestas en formato texto
+	saveResponse(response, prompt) {
+		const outputDir = "./results";
+		if (!fs.existsSync(outputDir)) {
+			fs.mkdirSync(outputDir);
+		}
+
+		const timestamp = new Date().getTime();
+		const textFilename = `respuesta_${timestamp}.txt`;
+		const filepath = path.join(outputDir, textFilename);
+
+		// Guardamos la respuesta en un archivo
+		let content = `Prompt: ${prompt}\n\n`;
+		content += `Respuesta: ${response.text || JSON.stringify(response, null, 2)}`;
+		fs.writeFileSync(filepath, content);
+
+		return {
+			success: true,
+			message: "Se ha generado la respuesta correctamente",
+			timestamp: timestamp,
+			responsePath: filepath,
+			text: response.text || "",
+			prompt: prompt,
+		};
+	}
+
+	// Mantenemos el método antiguo por compatibilidad
 	processImageResponse(result) {
 		const outputDir = "./results";
 		if (!fs.existsSync(outputDir)) {
 			fs.mkdirSync(outputDir);
 		}
 
-		const response = result.response;
 		const timestamp = new Date().getTime();
-		let images = [];
+		const textFilename = `respuesta_${timestamp}.txt`;
+		const filepath = path.join(outputDir, textFilename);
 
-		// Extraer las partes que contienen imágenes
-		try {
-			const candidates = [response];
-			candidates.forEach((candidate, candidateIndex) => {
-				const parts = candidate.text ? [{ text: candidate.text }] : candidate.parts || [];
-
-				parts.forEach((part, partIndex) => {
-					if (part.inlineData && part.inlineData.data && part.inlineData.mimeType) {
-						try {
-							const extension = mime.extension(part.inlineData.mimeType) || "png";
-							const filename = `imagen_${timestamp}_${candidateIndex}_${partIndex}.${extension}`;
-							const filepath = path.join(outputDir, filename);
-							fs.writeFileSync(filepath, Buffer.from(part.inlineData.data, "base64"));
-
-							images.push({
-								filename: filename,
-								path: filepath,
-								mimeType: part.inlineData.mimeType,
-							});
-						} catch (err) {
-							console.error(`Error al guardar la imagen: ${err.message}`);
-						}
-					}
-				});
-			});
-		} catch (error) {
-			console.error("Error al procesar las imágenes:", error);
-		}
-
-		// Si no se encontraron imágenes, creamos un archivo de texto con el prompt
-		if (images.length === 0) {
-			const textFilename = path.join(outputDir, `solicitud_${timestamp}.txt`);
-			fs.writeFileSync(textFilename, `Prompt solicitado: ${JSON.stringify(result, null, 2)}`);
-
-			return {
-				success: false,
-				message: "No se pudieron generar imágenes. Revisa los registros para más detalles.",
-				timestamp: timestamp,
-				responseLog: textFilename,
-			};
-		}
+		fs.writeFileSync(filepath, JSON.stringify(result, null, 2));
 
 		return {
 			success: true,
-			count: images.length,
-			images: images,
+			message: "Se ha guardado la respuesta",
 			timestamp: timestamp,
-		};
-	}
-
-	// El método original saveImages por si necesitamos mantenerlo
-	saveImages(candidates) {
-		const outputDir = "./results";
-		if (!fs.existsSync(outputDir)) {
-			fs.mkdirSync(outputDir);
-		}
-
-		let images = [];
-		const timestamp = new Date().getTime();
-
-		candidates.forEach((candidate, candidateIndex) => {
-			const parts = candidate.content?.parts || [];
-			parts.forEach((part, partIndex) => {
-				if (part.inlineData && part.inlineData.data && part.inlineData.mimeType) {
-					try {
-						const extension = mime.extension(part.inlineData.mimeType) || "png";
-						const filename = `imagen_${timestamp}_${candidateIndex}_${partIndex}.${extension}`;
-						const filepath = path.join(outputDir, filename);
-						fs.writeFileSync(filepath, Buffer.from(part.inlineData.data, "base64"));
-
-						images.push({
-							filename: filename,
-							path: filepath,
-							mimeType: part.inlineData.mimeType,
-						});
-					} catch (err) {
-						console.error(`Error al guardar la imagen: ${err.message}`);
-					}
-				}
-			});
-		});
-
-		return {
-			success: true,
-			count: images.length,
-			images: images,
-			timestamp: timestamp,
+			responsePath: filepath,
+			text: result.text || "",
 		};
 	}
 }
