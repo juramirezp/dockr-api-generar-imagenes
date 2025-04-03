@@ -9,5 +9,6 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
     volumes:
-      - ./logs:/app/logs
+      - ./results:/app/results
