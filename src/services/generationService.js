@@ -27,7 +27,7 @@ class GenerationService {
 		try {
 			// Usamos la nueva sintaxis
 			const response = await this.ai.models.generateContent({
-				model: "gemini-2.0-flash",
+				model: "gemini-2.0-flash-exp-image-generation",
 				contents: prompt,
 				generationConfig,
 			});
