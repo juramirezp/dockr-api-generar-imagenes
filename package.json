@@ -10,7 +10,7 @@
 		"docker:run": "docker run -p 3000:3000 generador-imagenes-api",
 		"docker:up": "docker-compose up -d",
 		"docker:down": "docker-compose down",
-		"push": "git add . && git commit -m 'update' && git push"
+		"push": "git add . && git commit -m 'update' && git push origin main"
 	},
 	"dependencies": {
 		"body-parser": "^1.19.0",
