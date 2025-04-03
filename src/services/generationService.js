@@ -13,7 +13,8 @@ class GenerationService {
 
 		this.genAI = new GoogleGenerativeAI(this.apiKey);
 		this.model = this.genAI.getGenerativeModel({
-			model: "gemini-2.0-flash-exp-image-generation", // Mantenemos el modelo original
+			model: "gemini-2.0-flash", // Mantenemos el modelo original
+			// model: "gemini-2.0-flash-exp-image-generation", // Mantenemos el modelo original
 		});
 	}
 
